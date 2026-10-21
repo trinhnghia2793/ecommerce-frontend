@@ -8,7 +8,7 @@ function internalApiBaseUrl(): string {
   ).trim();
   const root = raw.replace(/\/+$/, "");
 
-  return `${root}/api/vi/internal`;
+  return `${root}/api/v1/internal`;
 }
 
 // create an axios instance

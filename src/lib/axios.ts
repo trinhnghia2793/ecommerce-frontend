@@ -1,12 +1,11 @@
 import axios, { AxiosError } from "axios";
-import { redirect } from "next/navigation";
 import { toast } from "sonner";
 
 // axiosInstance config
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: "/api/nest",
   timeout: 30 * 1000,
-  withCredentials: true, // include cookies in each request
+  // withCredentials: true, // include cookies in each request (now we have proxy, so we don't need it anymore)
   headers: {
     "Content-Type": "application/json",
   },
@@ -19,19 +18,19 @@ axiosInstance.interceptors.response.use(
 
   // when error
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      toast.error("You must login to continue.");
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      const path = window.location.pathname;
+      const redirect = encodeURIComponent(path + window.location.search);
 
-      if (typeof window !== "undefined") {
-        redirect("/auth/signin");
-      }
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.href = `/auth/signin?redirect=${redirect}`;
     }
 
-    if (error.response?.status === 403) {
+    if (error.response?.status === 403 && typeof window !== "undefined") {
       toast.error("You don't have permission to do this.");
     }
 
-    if (!error.response) {
+    if (!error.response && typeof window !== "undefined") {
       toast.error("Could not connect to server. Please try again later.");
     }
 

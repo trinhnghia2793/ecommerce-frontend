@@ -111,4 +111,11 @@ export const auth = betterAuth({
       generateId: () => uuidv7(),
     },
   },
+
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    },
+  },
 });
