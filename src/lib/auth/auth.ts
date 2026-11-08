@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { bearer } from "better-auth/plugins";
+import { bearer, anonymous } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
 import { Pool } from "pg";
 import { v7 as uuidv7 } from "uuid";
@@ -36,7 +36,27 @@ const pool = new Pool({
 export const auth = betterAuth({
   database: pool,
 
-  plugins: [bearer(), nextCookies()], // nextCookies() auto set cookies when sign in / sign up
+  plugins: [
+    bearer(),
+    anonymous({
+      emailDomainName: "temp.local", // domain to create temporary email for anonymous user
+      generateName: () => "Guest User",
+      schema: {
+        user: {
+          fields: {
+            isAnonymous: "is_anonymous",
+          },
+        },
+      },
+    }),
+    nextCookies(), // nextCookies() auto set cookies when sign in / sign up
+  ],
+
+  rateLimit: {
+    customRules: {
+      "/sign-in/anonymous": { window: 60, max: 30 }, // 30 requests in 60s with this endpoint
+    },
+  },
 
   emailAndPassword: {
     enabled: true,
@@ -80,6 +100,43 @@ export const auth = betterAuth({
       emailVerified: "email_verified",
       createdAt: "created_at",
       updatedAt: "updated_at",
+    },
+    additionalFields: {
+      role: {
+        type: "string",
+        required: false,
+        defaultValue: "customer",
+        input: false, // client is not allowed to set value for 'role' field
+      },
+    },
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        // run before create user
+        before: async (user) => {
+          if (user.isAnonymous) {
+            return {
+              data: {
+                ...user,
+                role: "unregistered",
+              },
+            };
+          }
+        },
+      },
+      update: {
+        // after sign up --> update user role to 'customer'
+        after: async (user) => {
+          if (!user.isAnonymous && user.role === 'unregistered') {
+            await pool.query(
+              `UPDATE "user" SET role = 'customer' WHERE id = $1`,
+              [user.id]
+            )
+          }
+        }
+      }
     },
   },
 

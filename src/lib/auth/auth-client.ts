@@ -1,4 +1,5 @@
 import { createAuthClient } from "better-auth/client";
+import { anonymousClient } from "better-auth/client/plugins";
 
 // handle url when run on server side
 function serverBaseUrl(): string {
@@ -13,6 +14,7 @@ function createConfiguredClient(baseURL: string) {
   return createAuthClient({
     baseURL,
     basePath: "/api/auth",
+    plugins: [anonymousClient()], // allow client call anonymous sign in API through signIn.anonymous()
   });
 }
 
@@ -25,7 +27,7 @@ let browserOrigin: string | null = null;
 //
 export function getAuthClient(): AuthClient {
   // if run on browser
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     const origin = window.location.origin;
 
     // check client exists || origin changed
